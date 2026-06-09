@@ -979,28 +979,39 @@ function updateCalc() {
   const juHyuDow = (company.juHyuBasis === 'workweek')
     ? (restDays[0] + 6) % 7   // 무급휴무일 바로 전날 = 그 주의 마지막 근무일
     : restDays[1];            // 유급주휴일(쉬는 날)
-  //    · 육아단축 근무가 있는 주는 그 주의 주휴수당을 시급 × 6.4H로 지급 (8H → 6.4H 감액)
-  let juHyuCount = 0, juHyuForfeit = 0, juHyuReduced = 0;
-  let weeklyHol = 0;
+  // (1) 주휴 발생 주 수(juHyuCount) + 결근주 제외(juHyuForfeit)
+  let juHyuCount = 0, juHyuForfeit = 0;
   for (let d = 1; d <= total; d++) {
     if (new Date(curYear, curMonth, d).getDay() !== juHyuDow) continue;
     juHyuCount++;
-    // 해당 주 = 그 전날 기준 직전 7일. 결근이 있으면 미발생, 육아단축이 있으면 6.4H로 감액
-    let absentInWeek = false, yukaInWeek = false;
+    // 해당 주 = 그 전날 기준 직전 7일. 소정근로일(공휴일 제외) 결근이 있으면 미발생
+    let absentInWeek = false;
     for (let k = 0; k < 7; k++) {
       const dt   = new Date(curYear, curMonth, d - k);
       const wdow = dt.getDay();
       const wkey = dKey(dt.getFullYear(), dt.getMonth(), dt.getDate());
       const isRest = restDays.includes(wdow);
       const isHol  = !!HOLIDAYS[wkey];
-      if (!isRest && !isHol && workData[wkey] === 'OFF') absentInWeek = true;
-      if (workData[wkey] === 'YUKA') yukaInWeek = true;
+      if (!isRest && !isHol && workData[wkey] === 'OFF') { absentInWeek = true; break; }
     }
-    if (absentInWeek)      { juHyuForfeit++; }                          // 결근주 → 미발생(0)
-    else if (yukaInWeek)   { juHyuReduced++; weeklyHol += Math.round(6.4 * HR); }  // 육아단축주 → 6.4H
-    else                   { weeklyHol += Math.round(8 * HR); }        // 정상주 → 8H
+    if (absentInWeek) juHyuForfeit++;
   }
   const juHyuPaid = juHyuCount - juHyuForfeit;
+
+  // (2) 육아단축 6.4H 감액 — 실제 명세서 기준: '그 달 달력에 표시된 육아단축'이 속한 근무주 수만큼
+  //     그 달 주휴를 8H → 6.4H로 감액한다. (한 주에 육아단축이 여러 번이면 그 주는 1번만 감액)
+  //     마지막 주 육아단축이 다음 달로 넘어가지 않고, 표시된 달에서 바로 반영됨.
+  const yukaWeekSet = new Set();
+  for (let d = 1; d <= total; d++) {
+    if (workData[dKey(curYear, curMonth, d)] !== 'YUKA') continue;
+    const base = new Date(curYear, curMonth, d);
+    const off  = (juHyuDow - base.getDay() + 7) % 7;          // 그 주의 주휴 귀속일까지 거리
+    const anc  = new Date(curYear, curMonth, d + off);        // 근무주 식별용 귀속일
+    yukaWeekSet.add(dKey(anc.getFullYear(), anc.getMonth(), anc.getDate()));
+  }
+  const juHyuReduced = Math.min(yukaWeekSet.size, juHyuPaid); // 6.4H 적용 주 수
+  const juHyuFull    = juHyuPaid - juHyuReduced;              // 8H 적용 주 수
+  const weeklyHol    = juHyuFull * Math.round(8 * HR) + juHyuReduced * Math.round(6.4 * HR);
 
   // ⑥ 휴일수당 — 유급주휴일 근무일수 × 14H × 시급
   const holidayPay = Math.round(14 * HR) * holidayWork;
