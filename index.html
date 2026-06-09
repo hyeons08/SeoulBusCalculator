@@ -622,6 +622,37 @@ let lastAutoFill = null;    // { day, type }
 let companyKey = Object.keys(COMPANIES)[0]; // 기본 회사
 
 // =========================================================
+//  자동 저장 (localStorage)
+// =========================================================
+const STORAGE_KEY = 'busWageCalc';
+function saveState() {
+  try {
+    const grade = document.getElementById('gradeSelect');
+    const data = {
+      workData,
+      companyKey,
+      restDays,
+      safetyOn,
+      grade: grade ? grade.value : null,
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch (e) { /* 저장 실패 무시 */ }
+}
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+    if (data.workData && typeof data.workData === 'object') workData = data.workData;
+    if (data.companyKey && COMPANIES[data.companyKey]) companyKey = data.companyKey;
+    if (Array.isArray(data.restDays) && data.restDays.length === 2) restDays = data.restDays;
+    if (typeof data.safetyOn === 'boolean') safetyOn = data.safetyOn;
+    pendingGrade = data.grade || null;
+  } catch (e) { /* 불러오기 실패 무시 */ }
+}
+let pendingGrade = null;
+
+// =========================================================
 //  유틸
 // =========================================================
 function dKey(y, m, d) {
@@ -1126,11 +1157,30 @@ function updateCalc() {
   }
 
   area.innerHTML = html;
+
+  saveState();   // 변경될 때마다 자동 저장
 }
 
 // =========================================================
 //  초기 실행
 // =========================================================
+loadState();   // 저장된 데이터 복원 (workData / 회사 / 휴무일 / 무사고 / 호봉)
+
+// 복원된 휴무일에 맞는 버튼 활성화
+(function () {
+  document.querySelectorAll('.rest-btn').forEach(b => {
+    const days = b.dataset.days.split(',').map(Number);
+    b.classList.toggle('active', days[0] === restDays[0] && days[1] === restDays[1]);
+  });
+  // 무사고 토글
+  document.getElementById('safetyToggle').classList.toggle('on', safetyOn);
+  // 호봉
+  if (pendingGrade) {
+    const gsel = document.getElementById('gradeSelect');
+    if (gsel && [...gsel.options].some(o => o.value === pendingGrade)) gsel.value = pendingGrade;
+  }
+})();
+
 buildCompanySelect();
 renderCalendar();
 updateCalc();
