@@ -1028,7 +1028,7 @@ function updateCalc() {
   }
   const juHyuReduced = Math.min(yukaWeekSet.size, juHyuPaid); // 6.4H 적용 주 수
   const juHyuFull    = juHyuPaid - juHyuReduced;              // 8H 적용 주 수
-  const weeklyHol    = juHyuFull * Math.round(8 * HR) + juHyuReduced * Math.round(6.4 * HR);
+  const weeklyHol    = Math.round(8 * HR * juHyuFull) + Math.round(6.4 * HR * juHyuReduced);
 
   // ⑥ 휴일수당 — 유급주휴일 근무일수 × 14H × 시급
   const holidayPay = Math.round(14 * HR) * holidayWork;
