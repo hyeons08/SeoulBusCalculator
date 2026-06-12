@@ -487,12 +487,12 @@
 //        생략 시 기본값 'restday'
 // =========================================================
 const COMPANIES = {
-  bumil:   { name: '범일운수㈜',   bonusRate: 0.5, seolBonus: 300000, chuseokBonus: 350000, shiftLabel: '쉬프트',     holPublicLabel: '절수당',   juHyuBasis: 'workweek' },  // 상여 기본급×0.5 · 주휴: 근무주 완료 기준
-  krbrt:   { name: '한국비알티㈜', bonusRate: 0,   seolBonus: 300000, chuseokBonus: 350000, shiftLabel: '연장근로',   holPublicLabel: '연장근로', juHyuBasis: 'restday'  },  // 상여 없음 · 주휴: 유급주휴일 기준
-  boyoung: { name: '보영운수㈜',   bonusRate: 0,   seolBonus: 300000, chuseokBonus: 350000, shiftLabel: 'SHIFT 연장', holPublicLabel: '휴일근무', juHyuBasis: 'restday', model: 'boyoung' },  // 상여 격월 별도 제외 · 휴일근무=공식(9H×1.5+야간×0.5+1H×0.5) · 절수당·쉬프트2 없음
-  yeongsin:{ name: '영신여객자동차㈜', bonusRate: 0, seolBonus: 300000, chuseokBonus: 350000, shiftLabel: '쉬프트',   holPublicLabel: '절수당',   juHyuBasis: 'workweek' }, // 상여 없음 · 주휴: 휴무일 바로 전날 기준 · 휴일수당14H·절수당12.5H+겹침8H·SHIFT수당(무급휴무일)13.5H
-  namseong:{ name: '(주)남성버스',  bonusRate: 0, seolBonus: 300000, chuseokBonus: 350000, shiftLabel: 'SHIFT',    holPublicLabel: '칠대절',   juHyuBasis: 'restday', model: 'namseong' }, // 상여 별도 제외 · 연장수당→연장부가·기본급초과→외근무·공휴일근무→칠대절(12.5H, 연장·야간 미포함) · 유급주휴근무→휴일오전13.5H/휴일오후14H · 무급휴무근무→SHIFT수당13.5H · 주휴: 유급주휴일 개수
-  daewon:  { name: '(주)대원여객',  bonusRate: 0, seolBonus: 300000, chuseokBonus: 350000, shiftLabel: '쉬프트',   holPublicLabel: '경축수당', juHyuBasis: 'restday', model: 'daewon' },   // 상여 격달 별도 제외 · 기본급초과를 기본급(184H)에 흡수 · 절수당→경축수당(공휴일근무12.5H + 공휴·휴무겹침8H + 공휴·주휴겹침8H) · 공휴·주휴겹침일은 주휴수당에서 제외 · 연장·야간 공휴일 제외 · 야간 합산표시
+  bumil:   { name: '범일운수',   bonusRate: 0.5, seolBonus: 300000, chuseokBonus: 350000, shiftLabel: '쉬프트',     holPublicLabel: '절수당',   juHyuBasis: 'workweek' },  // 상여 기본급×0.5 · 주휴: 근무주 완료 기준
+  krbrt:   { name: '한국비알티', bonusRate: 0,   seolBonus: 300000, chuseokBonus: 350000, shiftLabel: '연장근로',   holPublicLabel: '연장근로', juHyuBasis: 'restday'  },  // 상여 없음 · 주휴: 유급주휴일 기준
+  boyoung: { name: '보영운수',   bonusRate: 0,   seolBonus: 300000, chuseokBonus: 350000, shiftLabel: 'SHIFT 연장', holPublicLabel: '휴일근무', juHyuBasis: 'restday', model: 'boyoung' },  // 상여 격월 별도 제외 · 휴일근무=공식(9H×1.5+야간×0.5+1H×0.5) · 절수당·쉬프트2 없음
+  yeongsin:{ name: '영신여객자동차', bonusRate: 0, seolBonus: 300000, chuseokBonus: 350000, shiftLabel: '쉬프트',   holPublicLabel: '절수당',   juHyuBasis: 'workweek' }, // 상여 없음 · 주휴: 휴무일 바로 전날 기준 · 휴일수당14H·절수당12.5H+겹침8H·SHIFT수당(무급휴무일)13.5H
+  namseong:{ name: '남성버스',  bonusRate: 0, seolBonus: 300000, chuseokBonus: 350000, shiftLabel: 'SHIFT',    holPublicLabel: '칠대절',   juHyuBasis: 'restday', model: 'namseong' }, // 상여 별도 제외 · 연장수당→연장부가·기본급초과→외근무·공휴일근무→칠대절(12.5H, 연장·야간 미포함) · 유급주휴근무→휴일오전13.5H/휴일오후14H · 무급휴무근무→SHIFT수당13.5H · 주휴: 유급주휴일 개수
+  daewon:  { name: '대원여객',  bonusRate: 0, seolBonus: 300000, chuseokBonus: 350000, shiftLabel: '쉬프트',   holPublicLabel: '경축수당', juHyuBasis: 'restday', model: 'daewon' },   // 상여 격달 별도 제외 · 기본급초과를 기본급(184H)에 흡수 · 절수당→경축수당(공휴일근무12.5H + 공휴·휴무겹침8H + 공휴·주휴겹침8H) · 공휴·주휴겹침일은 주휴수당에서 제외 · 연장·야간 공휴일 제외 · 야간 합산표시
   // 예) newco: { name: '새운수㈜', bonusRate: 0, seolBonus: 0, chuseokBonus: 0, shiftLabel: '쉬프트', holPublicLabel: '절수당', juHyuBasis: 'restday' },
 };
 
