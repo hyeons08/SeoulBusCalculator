@@ -489,7 +489,7 @@
 const COMPANIES = {
   bumil:   { name: '범일운수',   bonusRate: 0.5, seolBonus: 300000, chuseokBonus: 350000, shiftLabel: '쉬프트',     holPublicLabel: '절수당',   juHyuBasis: 'workweek' },  // 상여 기본급×0.5 · 주휴: 근무주 완료 기준
   krbrt:   { name: '한국비알티', bonusRate: 0,   seolBonus: 300000, chuseokBonus: 350000, shiftLabel: '연장근로',   holPublicLabel: '연장근로', juHyuBasis: 'restday'  },  // 상여 없음 · 주휴: 유급주휴일 기준
-  boyoung: { name: '보영운수',   bonusRate: 0,   seolBonus: 300000, chuseokBonus: 350000, shiftLabel: 'SHIFT 연장', holPublicLabel: '휴일근무', juHyuBasis: 'restday', model: 'boyoung' },  // 상여 격월 별도 제외 · 휴일근무=공식(9H×1.5+야간×0.5+1H×0.5) · 절수당·쉬프트2 없음
+  boyoung: { name: '보영운수',   bonusRate: 0,   seolBonus: 0,      chuseokBonus: 0,      shiftLabel: '쉬프트',     holPublicLabel: '절수당',   juHyuBasis: 'restday', model: 'boyoung' },  // 상여·명절 별도 지급(제외) · 연장/야간=소정근무(공휴일 포함) · 절수당 12.5H · 무급휴무근무=SHIFT 7.5H · 유급주휴근무 14H
   yeongsin:{ name: '영신여객자동차', bonusRate: 0, seolBonus: 300000, chuseokBonus: 350000, shiftLabel: '쉬프트',   holPublicLabel: '절수당',   juHyuBasis: 'workweek' }, // 상여 없음 · 주휴: 휴무일 바로 전날 기준 · 휴일수당14H·절수당12.5H+겹침8H·SHIFT수당(무급휴무일)13.5H
   namseong:{ name: '남성버스',  bonusRate: 0, seolBonus: 300000, chuseokBonus: 350000, shiftLabel: 'SHIFT',    holPublicLabel: '칠대절',   juHyuBasis: 'restday', model: 'namseong' }, // 상여 별도 제외 · 연장수당→연장부가·기본급초과→외근무·공휴일근무→칠대절(12.5H, 연장·야간 미포함) · 유급주휴근무→휴일오전13.5H/휴일오후14H · 무급휴무근무→SHIFT수당13.5H · 주휴: 유급주휴일 개수
   daewon:  { name: '대원여객',  bonusRate: 0, seolBonus: 300000, chuseokBonus: 350000, shiftLabel: '쉬프트',   holPublicLabel: '경축수당', juHyuBasis: 'restday', model: 'daewon' },   // 상여 격달 별도 제외 · 기본급초과를 기본급(184H)에 흡수 · 절수당→경축수당(공휴일근무12.5H + 공휴·휴무겹침8H + 공휴·주휴겹침8H) · 공휴·주휴겹침일은 주휴수당에서 제외 · 연장·야간 공휴일 제외 · 야간 합산표시
@@ -912,7 +912,7 @@ function updateCalc() {
   const isBoyoung = company.model === 'boyoung';   // 보영운수: 휴일근무 공식모델 · 절수당·쉬프트2·상여 없음
   const isNamseong = company.model === 'namseong'; // 남성버스: 공휴일근무=칠대절(연장·야간 미포함) · 유급주휴근무=휴일오전13.5H/오후14H · 무급휴무근무=SHIFT13.5H
   const isDaewon = company.model === 'daewon';     // 대원여객: 기본급초과를 기본급에 흡수 · 절수당→경축수당(공휴·주휴겹침 8H 포함) · 공휴·주휴겹침은 주휴에서 제외 · 연장·야간 공휴일 제외
-  const excludeHolFromOT = isBoyoung || isNamseong || isDaewon; // 연장·야간에서 공휴일 근무 제외 (공휴일은 칠대절/경축/휴일근무로 별도 지급)
+  const excludeHolFromOT = isNamseong || isDaewon; // 연장·야간에서 공휴일 근무 제외 (남성=칠대절/대원=경축으로 별도 지급) · 보영은 공휴일도 연장·야간에 포함
 
   const total = daysInMonth(curYear, curMonth);
 
@@ -934,8 +934,8 @@ function updateCalc() {
   let shiftCount = 0, shiftDCount = 0;     // 쉬프트 / 쉬프트 더블 (수동 선택)
   let simyaCount = 0;                       // 심야근무 (수동 선택)
   let yukaDays = 0;                          // 육아단축 근무일 (기본급 8H/일 차감, 연장·야간 미지급)
-  let weekdayAM = 0, weekdayPM = 0;         // 보영: 평일(공휴일 제외) 연장·야간 대상 오전/오후
-  let holWorkAM = 0, holWorkPM = 0;         // 보영: 휴일근무 대상(유급주휴+무급휴무+공휴일) 오전/오후
+  let weekdayAM = 0, weekdayPM = 0;         // 평일(공휴일 제외) 연장·야간 대상 오전/오후
+  let sojeongAM = 0, sojeongPM = 0;         // 보영: 소정근로일 근무(공휴일 포함) 오전/오후 → 연장·야간 대상
   let holidayAM = 0, holidayPM = 0;         // 남성: 유급주휴일 근무만 오전/오후 (휴일오전13.5H/휴일오후14H)
 
   for (let d = 1; d <= total; d++) {
@@ -955,12 +955,13 @@ function updateCalc() {
       const isAMshift = (t === 'AM');                   // 심야·오후 → 오후로 집계
       if (isAMshift) amWorked++; else pmWorked++;       // 심야근무는 오후근무와 동일하게 집계
       if (t === 'SIMYA') simyaCount++;                  // 심야수당 별도 지급용 카운트
-      if (isPaidRest)        { holidayWork++;  if (isAMshift) { holWorkAM++; holidayAM++; } else { holWorkPM++; holidayPM++; } }  // 유급주휴일 근무 → 휴일수당/휴일근무
-      else if (isUnpaidRest) { shift2Work++;   if (isAMshift) holWorkAM++; else holWorkPM++; }  // 무급휴무일 근무 → 쉬프트2/휴일근무
+      if (isPaidRest)        { holidayWork++;  if (isAMshift) holidayAM++; else holidayPM++; }  // 유급주휴일 근무 → 휴일수당
+      else if (isUnpaidRest) { shift2Work++; }                                                  // 무급휴무일 근무 → 쉬프트2(보영:SHIFT 7.5H)
       else {                                           // 평일(소정근로일) 근무
         weekdayWork++;                                 // 연장수당
+        if (isAMshift) sojeongAM++; else sojeongPM++;  // 소정 근무(공휴일 포함) 오전/오후 — 보영 연장·야간 대상
         if (!isPublicHol) { filledSojeong++; if (isAMshift) weekdayAM++; else weekdayPM++; }    // 평일 정상근무
-        if (isPublicHol)  { holPublicWork++; if (isAMshift) holWorkAM++; else holWorkPM++; }    // 공휴일 근무 → 절수당/휴일근무
+        if (isPublicHol)  { holPublicWork++; }         // 공휴일 근무 → 절수당
       }
     } else if (t === 'CHE' || t === 'ANN') {
       if (t === 'CHE') cheDays++; else annDays++;
@@ -997,9 +998,10 @@ function updateCalc() {
 
   // ② 연장수당 — 평일 근무일수 × 1H × 시급 × 1.5
   //    보영: 공휴일 근무는 휴일근무로 빠지므로 평일(공휴일 제외) 근무만 대상
-  const otDays  = excludeHolFromOT ? (weekdayAM + weekdayPM) : weekdayWork;
-  const nAMdays = excludeHolFromOT ? weekdayAM : amWorked;
-  const nPMdays = excludeHolFromOT ? weekdayPM : pmWorked;
+  //  보영: 연장·야간은 '소정근로일 근무(공휴일 포함)'만 대상 (무급휴무·유급주휴 근무는 별도 정액이라 제외)
+  const otDays  = isBoyoung ? weekdayWork : excludeHolFromOT ? (weekdayAM + weekdayPM) : weekdayWork;
+  const nAMdays = isBoyoung ? sojeongAM : excludeHolFromOT ? weekdayAM : amWorked;
+  const nPMdays = isBoyoung ? sojeongPM : excludeHolFromOT ? weekdayPM : pmWorked;
   const overtimePay = Math.round(otDays * 1 * HR * 1.5);
 
   // ③ 야간수당(오전) — 오전 근무일수 × 2H × 시급 × 0.5
@@ -1051,7 +1053,7 @@ function updateCalc() {
   const weeklyHol    = Math.round(8 * HR * juHyuFull) + Math.round(6.4 * HR * juHyuReduced);
 
   // ⑥ 휴일수당 — 유급주휴일 근무일수 × 14H × 시급 (보영·남성은 별도 공식으로 대체 → 0)
-  const holidayPay = (isBoyoung || isNamseong) ? 0 : Math.round(14 * HR) * holidayWork;
+  const holidayPay = isNamseong ? 0 : Math.round(14 * HR) * holidayWork;
 
   // ⑥-남성 휴일오전/휴일오후 — 유급주휴일 근무 1일당 (8H×1.5 + 야간×0.5 + 1H×0.5)
   //   휴일오전 = 8×1.5 + 2×0.5 + 1×0.5 = 13.5H · 휴일오후 = 8×1.5 + 3×0.5 + 1×0.5 = 14H
@@ -1062,21 +1064,14 @@ function updateCalc() {
 
   // ⑦ 절수당/경축수당 — 공휴일 근무일수 × 12.5H × 시급 + 무급휴무겹침 × 8H (보영은 휴일근무로 대체 → 0)
   //    대원(경축수당): 공휴·유급주휴 겹침일수 × 8H 추가 합산
-  const holPublicPay = isBoyoung ? 0
-    : Math.round(12.5 * HR) * holPublicWork + Math.round(8 * HR) * overlapDays
+  const holPublicPay = Math.round(12.5 * HR) * holPublicWork + Math.round(8 * HR) * overlapDays
       + (isDaewon ? Math.round(8 * HR) * holPaidOverlap : 0);
 
-  // ⑧ 쉬프트2 — 무급휴무일 근무일수 × 13.5H × 시급 (보영은 휴일근무로 대체 → 0)
-  const shift2Pay = isBoyoung ? 0 : Math.round(13.5 * HR) * shift2Work;
-
-  // ⑧-보영 휴일근무 — 유급주휴·무급휴무·공휴일 근무 1일당
-  //   { 9H×1.5 + 야간(오전 2H / 오후 3H)×0.5 + 1H×0.5 } × 시급
-  //   오전근무 = 15H, 오후근무 = 15.5H 상당
-  const boyoungHolDays = holWorkAM + holWorkPM;
-  const boyoungHolidayPay = isBoyoung
-    ? Math.round((9 * 1.5 + 2 * 0.5 + 1 * 0.5) * HR) * holWorkAM
-      + Math.round((9 * 1.5 + 3 * 0.5 + 1 * 0.5) * HR) * holWorkPM
-    : 0;
+  // ⑧ 쉬프트2 / SHIFT — 무급휴무일 근무일수 × 13.5H × 시급
+  //   보영: 무급휴무일 근무 = SHIFT 7.5H(=5H×1.5), 일수 합산 후 1회 반올림
+  const shift2Pay = isBoyoung
+    ? Math.round(SHIFT_HOURS * shift2Work * HR)
+    : Math.round(13.5 * HR) * shift2Work;
 
   // ⑧-2 쉬프트 / 쉬프트 더블 (수동 선택)
   //   - 쉬프트     = 7.5H × 시급 (근무표시 5H = 5H×1.5) · 일수 합산 후 1회 반올림
@@ -1108,7 +1103,7 @@ function updateCalc() {
   // 소계 (시간급 항목 합)
   const subtotal = basePay + overBasePay + overtimePay + nightAM + nightPM
                  + weeklyHol + holidayPay + holPublicPay + shift2Pay
-                 + shiftPay + shiftDPay + simyaPay + boyoungHolidayPay + namseongHolidayPay;
+                 + shiftPay + shiftDPay + simyaPay + namseongHolidayPay;
   const totalPay = subtotal + sangyeoPay + myeongjeolPay + bonusAmount;
 
   // =========================================================
@@ -1119,15 +1114,14 @@ function updateCalc() {
     { label: `소정 ${sojeong}일` },
     amWorked     > 0 ? { label: `오전 ${amWorked}일`,            cls: 'ok' } : null,
     pmWorked     > 0 ? { label: `오후 ${pmWorked}일`,            cls: 'ok' } : null,
-    (!isBoyoung && holidayWork > 0) ? { label: `주휴일근무 ${holidayWork}일`, cls: 'ok' } : null,
-    (!isBoyoung && shift2Work  > 0) ? { label: `${isNamseong ? 'SHIFT' : '쉬프트2'} ${shift2Work}일`,     cls: 'ok' } : null,
-    (isBoyoung && boyoungHolDays > 0) ? { label: `휴일근무 ${boyoungHolDays}일`, cls: 'ok' } : null,
+    holidayWork > 0 ? { label: `주휴일근무 ${holidayWork}일`, cls: 'ok' } : null,
+    shift2Work  > 0 ? { label: `${isNamseong ? 'SHIFT' : isBoyoung ? 'SHIFT' : '쉬프트2'} ${shift2Work}일`,     cls: 'ok' } : null,
     shiftCount   > 0 ? { label: `${isBoyoung ? 'SHIFT' : '쉬프트'} ${shiftCount}일`, cls: 'ok' } : null,
     shiftDCount  > 0 ? { label: `${isBoyoung ? 'SHIFT' : '쉬프트'}더블 ${shiftDCount}일`, cls: 'ok' } : null,
     simyaCount   > 0 ? { label: `심야근무 ${simyaCount}일`,      cls: 'ok' } : null,
     yukaDays     > 0 ? { label: `육아단축 ${yukaDays}일` } : null,
-    (!isBoyoung && holPublicWork > 0) ? { label: `공휴일근무 ${holPublicWork}일`, cls: 'ok' } : null,
-    (!isBoyoung && overlapDays   > 0) ? { label: `공휴일+휴무겹침 ${overlapDays}일`, cls: 'ok' } : null,
+    holPublicWork > 0 ? { label: `공휴일근무 ${holPublicWork}일`, cls: 'ok' } : null,
+    overlapDays   > 0 ? { label: `공휴일+휴무겹침 ${overlapDays}일`, cls: 'ok' } : null,
     (isDaewon && holPaidOverlap  > 0) ? { label: `공휴일+주휴겹침 ${holPaidOverlap}일`, cls: 'ok' } : null,
     cheDays      > 0 ? { label: `청원휴가 ${cheDays}일` } : null,
     annDays      > 0 ? { label: `연차 ${annDays}일` } : null,
@@ -1180,19 +1174,13 @@ function updateCalc() {
     if (isDaewon && holPaidOverlap > 0) parts.push(`주휴겹침 ${holPaidOverlap}일(8H)`);
     rows.push({ label: `${hpLbl} — ${parts.join(' + ')}`, amount: holPublicPay });
   }
-  if (boyoungHolidayPay > 0) {
-    const hp = [];
-    if (holWorkAM > 0) hp.push(`오전 ${holWorkAM}일`);
-    if (holWorkPM > 0) hp.push(`오후 ${holWorkPM}일`);
-    rows.push({ label: `휴일근무 — ${hp.join(' + ')} (9H×150%+야간+1H×50%)`, amount: boyoungHolidayPay });
-  }
   if (namseongHolidayPay > 0) {
     const hp = [];
     if (holidayAM > 0) hp.push(`휴일오전 ${holidayAM}일(13.5H)`);
     if (holidayPM > 0) hp.push(`휴일오후 ${holidayPM}일(14H)`);
     rows.push({ label: `휴일근무 — ${hp.join(' + ')}`, amount: namseongHolidayPay });
   }
-  if (shift2Pay > 0)   rows.push({ label: `${isNamseong ? 'SHIFT수당 — 무급휴무일근무' : '쉬프트2 — 무급휴무일근무'} ${shift2Work}일 (13.5H)`, amount: shift2Pay });
+  if (shift2Pay > 0)   rows.push({ label: isBoyoung ? `SHIFT — 무급휴무일근무 ${shift2Work}일 (${SHIFT_HOURS}H)` : `${isNamseong ? 'SHIFT수당 — 무급휴무일근무' : '쉬프트2 — 무급휴무일근무'} ${shift2Work}일 (13.5H)`, amount: shift2Pay });
   const shiftLbl = company.shiftLabel || '쉬프트';
   if (shiftPay > 0)    rows.push({ label: `${shiftLbl} — ${shiftCount}일 (${SHIFT_HOURS}H)`, amount: shiftPay });
   if (shiftDPay > 0)   rows.push({ label: `${shiftLbl} 더블 — ${shiftDCount}일 (${SHIFT_HOURS * 2}H)`, amount: shiftDPay });
