@@ -171,10 +171,6 @@
     .cal-day.type-SUBAM .day-num { color: #117a65; }
     .cal-day.type-SUBPM { background: #d4e6f1; border-color: #2e86c1; }
     .cal-day.type-SUBPM .day-num { color: #21618c; }
-    .cal-day.type-EXTAM { background: #fcf0d8; border-color: #d68910; }
-    .cal-day.type-EXTAM .day-num { color: #9c640c; }
-    .cal-day.type-EXTPM { background: #fae0d0; border-color: #ca6f1e; }
-    .cal-day.type-EXTPM .day-num { color: #a04000; }
 
     .day-num { font-size: 13px; font-weight: 700; line-height: 1; }
     .day-tag {
@@ -192,8 +188,6 @@
     .type-YUKA .day-tag   { background: #f8b9c8; color: #c2185b; }
     .type-SUBAM .day-tag  { background: #abebc6; color: #117a65; }
     .type-SUBPM .day-tag  { background: #a9cce3; color: #21618c; }
-    .type-EXTAM .day-tag  { background: #f7d98a; color: #9c640c; }
-    .type-EXTPM .day-tag  { background: #f3c19b; color: #a04000; }
 
     /* 파생 카테고리 미니 배지 (휴일근무 / 쉬프트2 / 절) */
     .cat-tag {
@@ -316,8 +310,6 @@
     .modal-btn.type-YUKA.selected   { border-color: #e84393; background: #e84393; }
     .modal-btn.type-SUBAM.selected  { border-color: #16a085; background: #16a085; }
     .modal-btn.type-SUBPM.selected  { border-color: #2e86c1; background: #2e86c1; }
-    .modal-btn.type-EXTAM.selected  { border-color: #d68910; background: #d68910; }
-    .modal-btn.type-EXTPM.selected  { border-color: #ca6f1e; background: #ca6f1e; }
 
     .modal-clear {
       flex: 1; padding: 13px; background: #fce4e4; color: #e74c3c;
@@ -480,17 +472,11 @@
       <div class="modal-btn type-PM" data-type="PM" onclick="selectType(this)">🌇<br>오후 근무</div>
       <div class="modal-btn type-YUKA" data-type="YUKA" onclick="selectType(this)">👶<br>육아단축</div>
     </div>
-    <!-- 쉬프트 / 쉬프트 더블 / 심야근무 (남성버스는 연장오전·연장오후로 표시) -->
+    <!-- 쉬프트 / 쉬프트 더블 / 심야근무 -->
     <div class="modal-grid-3">
-      <div class="modal-btn type-SHIFT" id="btnShift" data-type="SHIFT" onclick="selectType(this)"><b>S</b><br>쉬프트(5H)</div>
-      <div class="modal-btn type-SHIFTD" id="btnShiftD" data-type="SHIFTD" onclick="selectType(this)"><b>SS</b><br>쉬프트 더블(10H)</div>
+      <div class="modal-btn type-SHIFT" data-type="SHIFT" onclick="selectType(this)"><b>S</b><br>쉬프트(5H)</div>
+      <div class="modal-btn type-SHIFTD" data-type="SHIFTD" onclick="selectType(this)"><b>SS</b><br>쉬프트 더블(10H)</div>
       <div class="modal-btn type-SIMYA" data-type="SIMYA" onclick="selectType(this)">🌙<br>심야근무</div>
-    </div>
-    <!-- 대체근무 (무급휴무일 대체 = 평일 정상근무) -->
-    <div class="modal-grid-3" id="subRow">
-      <div class="modal-btn type-SUBAM" data-type="SUBAM" onclick="selectType(this)">🔄<br>대체오전</div>
-      <div class="modal-btn type-SUBPM" data-type="SUBPM" onclick="selectType(this)">🔄<br>대체오후</div>
-      <div class="modal-btn" style="visibility:hidden"></div>
     </div>
     <!-- 청원휴가 / 연차 / 결근 -->
     <div class="modal-grid-3">
@@ -557,12 +543,7 @@ const GRADES = {
 const MONTHLY_HOURS = 176; // 한 달 기준 근로시간 (8H × 22일)
 const BASE_DAYS = 22;      // 소정근로일 기준 (이 일수까지는 176H 전액 보장)
 
-const TYPE_LABELS = { AM:'오전', PM:'오후', CHE:'청원', ANN:'연차', OFF:'결근', SHIFT:'쉬프트', SHIFTD:'쉬프트더블', SIMYA:'심야', YUKA:'육아', SUBAM:'대체오전', SUBPM:'대체오후', EXTAM:'연장오전', EXTPM:'연장오후' };
-
-// 남성버스 연장근무(긴 근무) 인정시간 — 자체 완결(연장부가·야간 미포함)
-// 연장오전 = 14.5H × 시급 · 연장오후 = 15H × 시급
-const EXT_AM_HOURS = 14.5;
-const EXT_PM_HOURS = 15;
+const TYPE_LABELS = { AM:'오전', PM:'오후', CHE:'청원', ANN:'연차', OFF:'결근', SHIFT:'쉬프트', SHIFTD:'쉬프트더블', SIMYA:'심야', YUKA:'육아', SUBAM:'대체오전', SUBPM:'대체오후' };
 
 // 군포교통 심야수당 — 매월 정액: 15.5H × 선택 호봉 시급
 const GUNPO_SIMYA_HOURS = 15.5;
@@ -810,7 +791,6 @@ function buildCompanySelect() {
   }).join('');
   sel.value = companyKey;
   updateGunpoCard();
-  updateModalButtons();
 }
 function updateGunpoCard() {
   const card = document.getElementById('gunpoCard');
@@ -833,29 +813,9 @@ function updateGunpoCard() {
     if (note)  note.textContent  = '심야수당은 매월 ‘15.5H × 선택 호봉 시급’으로 자동 가산됩니다. 교육수당은 명세서의 해당 월 값을 입력하세요.';
   }
 }
-// 회사별 근무 선택 버튼 구성
-//  - 남성버스: 대체오전/대체오후 숨김 · '쉬프트→연장오전', '쉬프트더블→연장오후'로 대체
-//  - 그 외 회사: 기본(쉬프트 / 쉬프트 더블 / 대체오전·오후)
-function updateModalButtons() {
-  const model = COMPANIES[companyKey] && COMPANIES[companyKey].model;
-  const isNamseong = (model === 'namseong');
-  const bShift  = document.getElementById('btnShift');
-  const bShiftD = document.getElementById('btnShiftD');
-  const subRow  = document.getElementById('subRow');
-  if (bShift) {
-    if (isNamseong) { bShift.className = 'modal-btn type-EXTAM'; bShift.dataset.type = 'EXTAM'; bShift.innerHTML = '⏱️<br>연장오전(14.5H)'; }
-    else            { bShift.className = 'modal-btn type-SHIFT'; bShift.dataset.type = 'SHIFT'; bShift.innerHTML = '<b>S</b><br>쉬프트(5H)'; }
-  }
-  if (bShiftD) {
-    if (isNamseong) { bShiftD.className = 'modal-btn type-EXTPM'; bShiftD.dataset.type = 'EXTPM'; bShiftD.innerHTML = '⏱️<br>연장오후(15H)'; }
-    else            { bShiftD.className = 'modal-btn type-SHIFTD'; bShiftD.dataset.type = 'SHIFTD'; bShiftD.innerHTML = '<b>SS</b><br>쉬프트 더블(10H)'; }
-  }
-  if (subRow) subRow.style.display = isNamseong ? 'none' : '';
-}
 function updateCompany() {
   companyKey = document.getElementById('companySelect').value;
   updateGunpoCard();
-  updateModalButtons();
   updateCalc();
 }
 
@@ -1062,7 +1022,6 @@ function updateCalc() {
   let weekdayAM = 0, weekdayPM = 0;         // 평일(공휴일 제외) 연장·야간 대상 오전/오후
   let sojeongAM = 0, sojeongPM = 0;         // 보영: 소정근로일 근무(공휴일 포함) 오전/오후 → 연장·야간 대상
   let holidayAM = 0, holidayPM = 0;         // 남성: 유급주휴일 근무만 오전/오후 (휴일오전13.5H/휴일오후14H)
-  let extAmCount = 0, extPmCount = 0;        // 남성: 연장근무(연장오전 14.5H / 연장오후 15H) — 자체 완결(연장부가·야간 미포함)
 
   for (let d = 1; d <= total; d++) {
     const key = dKey(curYear, curMonth, d);
@@ -1106,11 +1065,6 @@ function updateCalc() {
     } else if (t === 'YUKA') {                          // 육아단축 근무
       // 출근으로 인정(만근·무사고 영향 없음). 기본급에서 8H/일 차감, 연장·야간 미지급.
       if (isSojeong && !isPublicHol) { yukaDays++; filledSojeong++; }
-    } else if (t === 'EXTAM' || t === 'EXTPM') {        // 남성: 연장근무(긴 근무)
-      // 연장오전 14.5H / 연장오후 15H를 자체 완결로 지급(연장부가·야간 미가산).
-      // 출근으로 인정 → 소정근로일을 채워 만근 기준 충족.
-      if (t === 'EXTAM') extAmCount++; else extPmCount++;
-      if (isSojeong && !isPublicHol) filledSojeong++;
     }
 
     // 공휴일이 무급휴무일과 겹쳤는데 근무하지 않은 날 → 8시간분 지급
@@ -1212,10 +1166,6 @@ function updateCalc() {
       + Math.round((9 * 1.5 + 3 * 0.5 + 1 * 0.5) * HR) * holidayPM
     : 0;
 
-  // ⑥-남성 연장근무 — 연장오전 14.5H / 연장오후 15H (자체 완결, 연장부가·야간 미포함)
-  const extAmPay = Math.round(EXT_AM_HOURS * HR) * extAmCount;
-  const extPmPay = Math.round(EXT_PM_HOURS * HR) * extPmCount;
-
   // ⑦ 절수당/경축수당 — 공휴일 근무일수 × 12.5H × 시급 + 무급휴무겹침 × 8H (보영은 휴일근무로 대체 → 0)
   //    대원(경축수당): 공휴·유급주휴 겹침일수 × 8H 추가 합산
   //    군포교통: 총시간(12.5H × 공휴일근무일수)을 한 번에 곱한 뒤 1회 반올림 (회사 명세서 방식)
@@ -1273,7 +1223,6 @@ function updateCalc() {
   const subtotal = basePay + overBasePay + overtimePay + nightAM + nightPM
                  + weeklyHol + holidayPay + holPublicPay + shift2Pay
                  + shiftPay + shiftDPay + simyaPay + namseongHolidayPay + boyoungHolidayPay
-                 + extAmPay + extPmPay
                  + gunpoSimyaPay + gunpoEduPay;
   const totalPay = subtotal + sangyeoPay + myeongjeolPay + bonusAmount;
 
@@ -1290,8 +1239,6 @@ function updateCalc() {
     shiftCount   > 0 ? { label: `${isBoyoung ? 'SHIFT' : '쉬프트'} ${shiftCount}일`, cls: 'ok' } : null,
     shiftDCount  > 0 ? { label: `${isBoyoung ? 'SHIFT' : '쉬프트'}더블 ${shiftDCount}일`, cls: 'ok' } : null,
     simyaCount   > 0 ? { label: `심야근무 ${simyaCount}일`,      cls: 'ok' } : null,
-    extAmCount   > 0 ? { label: `연장오전 ${extAmCount}일`,       cls: 'ok' } : null,
-    extPmCount   > 0 ? { label: `연장오후 ${extPmCount}일`,       cls: 'ok' } : null,
     yukaDays     > 0 ? { label: `육아단축 ${yukaDays}일` } : null,
     holPublicWork > 0 ? { label: `공휴일근무 ${holPublicWork}일`, cls: 'ok' } : null,
     overlapDays   > 0 ? { label: `공휴일+휴무겹침 ${overlapDays}일`, cls: 'ok' } : null,
@@ -1360,8 +1307,6 @@ function updateCalc() {
     if (holidayPM > 0) hp.push(`휴일오후 ${holidayPM}일(15.5H)`);
     rows.push({ label: `휴일근무 — ${hp.join(' + ')}`, amount: boyoungHolidayPay });
   }
-  if (extAmPay > 0)    rows.push({ label: `연장오전 — ${extAmCount}일 (${EXT_AM_HOURS}H × 시급)`, amount: extAmPay });
-  if (extPmPay > 0)    rows.push({ label: `연장오후 — ${extPmCount}일 (${EXT_PM_HOURS}H × 시급)`, amount: extPmPay });
   if (shift2Pay > 0)   rows.push({ label: isBoyoung ? `SHIFT — 무급휴무일근무 ${shift2Work}일 (${SHIFT_HOURS}H)` : `${isNamseong ? 'SHIFT수당 — 무급휴무일근무' : '쉬프트2 — 무급휴무일근무'} ${shift2Work}일 (13.5H)`, amount: shift2Pay });
   const shiftLbl = company.shiftLabel || '쉬프트';
   if (shiftPay > 0)    rows.push({ label: `${shiftLbl} — ${shiftCount}일 (${SHIFT_HOURS}H)`, amount: shiftPay });
