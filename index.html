@@ -540,8 +540,8 @@ const GRADES = {
   9: { h: 13741, base: 2418416 }
 };
 
-const MONTHLY_HOURS = 176; // 한 달 기준 근로시간 (8H × 22일)
-const BASE_DAYS = 22;      // 소정근로일 기준 (이 일수까지는 176H 전액 보장)
+const MONTHLY_HOURS = 176; // 한 달 기준 근로시간 (8H × 22일) — 참고용 상수 (기본급 계산엔 더이상 직접 사용하지 않음)
+const BASE_DAYS = 22;      // 소정근로일 기준 상수 (참고용, 기본급 계산엔 더이상 직접 사용하지 않음)
 
 const TYPE_LABELS = { AM:'오전', PM:'오후', CHE:'청원', ANN:'연차', OFF:'결근', SHIFT:'쉬프트', SHIFTD:'쉬프트더블', SIMYA:'심야', YUKA:'육아', SUBAM:'대체오전', SUBPM:'대체오후' };
 
@@ -990,7 +990,7 @@ function handleBackdropClick(e) {
 function updateCalc() {
   const grade = parseInt(document.getElementById('gradeSelect').value);
   const HR = GRADES[grade].h;            // 통상시급 (= base / 176)
-  const MBASE = GRADES[grade].base;      // 176시간 × 시급
+  const MBASE = GRADES[grade].base;      // 176시간 × 시급 (참고용, 기본급 계산엔 더이상 직접 사용하지 않음)
   const company = COMPANIES[companyKey];
   const isBoyoung = company.model === 'boyoung';   // 보영운수: 휴일근무 공식모델 · 절수당·쉬프트2·상여 없음
   const isNamseong = company.model === 'namseong'; // 남성버스: 공휴일근무=칠대절(연장·야간 미포함) · 유급주휴근무=휴일오전13.5H/오후14H · 무급휴무근무=SHIFT13.5H
@@ -1076,17 +1076,18 @@ function updateCalc() {
   // =========================================================
   //  항목별 계산
   // =========================================================
-  // ① 기본급 — 176H(22일) 지급 원칙
-  //    - 결근이 없으면 소정근로일이 22일 미달이어도 176H 전액 보장
-  //    - 소정근로일 결근 1일당 8H분을 기본급에서 차감 (법정공휴일 결근은 absentDays에서 이미 제외)
-  //    - 육아단축 근무 1일당 8H분을 기본급에서 추가 차감 (결근과 동일한 차감, 단 결근은 아님)
+  // ① 기본급 — 그 달 실제 소정근로일(sojeong) 기준으로 지급
+  //    - [수정] 기존 "176H 고정 보장" 방식 대신, 그 달 소정근로일수를 그대로 반영한다.
+  //      (소정근로일 22일 기준 고정 176H 보장 방식은, 소정근로일이 22일이 아닌 달에
+  //       실제 명세서와 어긋나는 것이 확인되어 아래와 같이 수정함)
+  //    - 기본급 지급 대상 실근무일수 = 소정근로일(sojeong) − 결근(absentDays) − 육아단축(yukaDays)
+  //    - 기본급 = 지급 대상 실근무일수 × 8H × 시급
   const reduceDays = absentDays + yukaDays;               // 기본급 차감 대상 일수 (결근 + 육아단축)
-  const absentDeduct = Math.round(reduceDays * 8 * HR);   // 차감액
-  const basePay = MBASE - absentDeduct;                   // 차감분이 반영된 기본급
-  const baseHours = MONTHLY_HOURS - reduceDays * 8;       // 표시용 실제 지급시간 (176 − 8×(결근+육아단축))
-  // 기본급초과 — 소정근로일이 22일 초과 시 초과 1일당 8H분 추가 지급
-  const overBasePay = sojeong > BASE_DAYS
-    ? Math.round((sojeong - BASE_DAYS) * 8 * HR) : 0;
+  const workedDays = sojeong - reduceDays;                 // 기본급 지급 대상 실근무일수
+  const baseHours = workedDays * 8;                         // 표시용 실제 지급시간
+  const basePay = Math.round(baseHours * HR);               // 기본급 = baseHours × 시급
+  // [수정] 소정근로일수가 이미 basePay 계산에 그대로 반영되므로, 22일 초과분 별도 가산은 더이상 필요 없음
+  const overBasePay = 0;
 
   // ② 연장수당 — 소정근로일 근무일수 × 1H × 시급 × 1.5
   //    보영·남성·대원: 연장·야간은 '소정근로일 근무(공휴일 근무 포함)'를 대상으로 한다.
@@ -1259,13 +1260,12 @@ function updateCalc() {
   const rows = [];
 
   if (isDaewon) {
-    // 대원: 기본급초과를 기본급에 흡수 (176/184/192H 한 줄로 표시)
-    const dwHours = baseHours + (sojeong > BASE_DAYS ? (sojeong - BASE_DAYS) * 8 : 0);
-    rows.push({ label: `기본급 — ${dwHours}H × ${HR.toLocaleString()}원`, amount: basePay + overBasePay });
+    // 대원: baseHours가 이미 그 달 소정근로일 기준으로 계산되므로 추가 가산 불필요
+    rows.push({ label: `기본급 — ${baseHours}H × ${HR.toLocaleString()}원`, amount: basePay });
   } else {
     const baseLabel = reduceDays > 0
       ? `기본급 — ${baseHours}H × ${HR.toLocaleString()}원`
-      : `기본급 — ${MONTHLY_HOURS}시간 × ${HR.toLocaleString()}원`;
+      : `기본급 — ${baseHours}시간 × ${HR.toLocaleString()}원`;
     rows.push({ label: baseLabel, amount: basePay });
     if (overBasePay > 0) rows.push({ label: `${isNamseong ? '외근무' : '기본급초과'} — (${sojeong}−${BASE_DAYS})일 × 8H × 시급`, amount: overBasePay });
   }
