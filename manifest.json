@@ -1,0 +1,14 @@
+{
+  "name": "서울시버스 임금 계산기",
+  "short_name": "버스급여",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#154360",
+  "theme_color": "#154360",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
